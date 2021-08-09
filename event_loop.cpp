@@ -8,17 +8,20 @@ namespace el {
     EventLoop::EventLoop() : _running(false),
                              _callback_map(),
                              _callback_id_counter(0),
-                             _time_groups(),
-                             _min_timer(INT32_MAX) {
+                             _time_groups({{TimeGroupsEnum::SEC,   {0, {}}},
+                                           {TimeGroupsEnum::MIN,   {0, {}}},
+                                           {TimeGroupsEnum::HOURS, {0, {}}},
+                                           {TimeGroupsEnum::DAY,   {0, {}}}}),
+                             _min_timer(UINT32_MAX) {
 
     }
 
     EventLoop::time_type EventLoop::_now() {
-        return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        return static_cast<time_type>(std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count());
     }
 
-    EventLoop::TimeGroupsEnum EventLoop::_time_group_type(time_type &delay) {
+    EventLoop::TimeGroupsEnum EventLoop::_time_group_type(time_type delay) {
         if (delay < 60'000) {
             return TimeGroupsEnum::SEC;
         } else if (delay < 3'600'000) {
@@ -32,55 +35,44 @@ namespace el {
 
     void EventLoop::_erase_from_time_group(const EventLoop::TimeGroupsEnum &time_group_type,
                                            const id_type &id) {
-        switch (time_group_type) {
-            case TimeGroupsEnum::SEC:
-                _time_groups.sec.second.remove(id);
-                break;
-            case TimeGroupsEnum::MIN:
-                _time_groups.min.second.remove(id);
-                break;
-            case TimeGroupsEnum::HOURS:
-                _time_groups.hours.second.remove(id);
-                break;
-            case TimeGroupsEnum::DAY:
-                _time_groups.day.second.remove(id);
-                break;
-            default:
-                break;
-        }
+        _time_groups[time_group_type].list.remove(id);
     }
 
     void EventLoop::_insert_to_time_group(const EventLoop::TimeGroupsEnum &time_group_type,
                                           const EventLoop::id_type &id) {
-        auto list = _time_groups.sec.second;
-        auto it = std::begin(_time_groups.sec.second);
+        auto list = _time_groups[time_group_type].list;
+        auto it = std::begin(_time_groups[time_group_type].list);
 
-        switch (time_group_type) {
-            case TimeGroupsEnum::SEC:
-                for (auto &i: list) {
-                    auto time = _callback_map[id].time;
+        for (auto &i: list) {
+            auto time = _callback_map[id].time;
 
-                    if (time < _callback_map[i].time) {
-                        _time_groups.sec.second.insert(it, id);
-                        return;
-                    }
+            if (time < _callback_map[i].time) {
+                _time_groups[time_group_type].list.insert(it, id);
+                return;
+            }
 
-                    ++it;
+            ++it;
+        }
+
+        _time_groups[time_group_type].list.push_back(id);
+    }
+
+    void EventLoop::_update_time_group(const EventLoop::TimeGroupsEnum &time_group_type,
+                                       const time_type &now,
+                                       time_type max_time) {
+        if (now - _time_groups[time_group_type].time > max_time) {
+            auto list = _time_groups[time_group_type].list;
+
+            for (auto &id: list) {
+                auto type = _time_group_type(_callback_map[id].time - now);
+
+                if (type != time_group_type) {
+                    _erase_from_time_group(time_group_type, id);
+                    _insert_to_time_group(type, id);
                 }
+            }
 
-                _time_groups.sec.second.push_back(id);
-                break;
-            case TimeGroupsEnum::MIN:
-                _time_groups.min.second.push_back(id);
-                break;
-            case TimeGroupsEnum::HOURS:
-                _time_groups.hours.second.push_back(id);
-                break;
-            case TimeGroupsEnum::DAY:
-                _time_groups.day.second.push_back(id);
-                break;
-            default:
-                break;
+            _time_groups[time_group_type].time = now;
         }
     }
 
@@ -151,8 +143,22 @@ namespace el {
     }
 
     void EventLoop::_loop() {
-        while (!_running) {
-//            for ()
+        while (_running) {
+            auto now = _now();
+
+//            _update_time_group(TimeGroupsEnum::DAY, now, 86'500'000);
+//            _update_time_group(TimeGroupsEnum::HOURS, now, 3'500'000);
+            _update_time_group(TimeGroupsEnum::MIN, now, 1'000);
+
+            auto list = _time_groups[TimeGroupsEnum::SEC].list;
+
+            for (auto &i: list) {
+                if (_callback_map[i].time < now) {
+                    _callback_map[i].func();
+                }
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
