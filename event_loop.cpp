@@ -62,7 +62,6 @@ namespace el {
 
                     if (time < _callback_map[i].time) {
                         _time_groups.sec.second.insert(it, id);
-                        _min_timer = time;
                         return;
                     }
 
@@ -98,14 +97,9 @@ namespace el {
         _erase_from_time_group(TimeGroupsEnum::MIN, id);
         _erase_from_time_group(TimeGroupsEnum::HOURS, id);
         _erase_from_time_group(TimeGroupsEnum::DAY, id);
-
-        if (_callback_map.empty()) {
-            _min_timer = INT32_MAX;
-        }
     }
 
     void EventLoop::_insert(id_type &id, time_type &delay, std::function<void()> cb) {
-        _min_timer = 1;
         _callback_map.insert({id, {std::move(cb), _now() + delay}});
         _insert_to_time_group(_time_group_type(delay), id);
     }
