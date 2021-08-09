@@ -11,9 +11,7 @@ namespace el {
                              _time_groups({{TimeGroupsEnum::SEC,   {0, {}}},
                                            {TimeGroupsEnum::MIN,   {0, {}}},
                                            {TimeGroupsEnum::HOURS, {0, {}}},
-                                           {TimeGroupsEnum::DAY,   {0, {}}}}),
-                             _min_timer(UINT32_MAX) {
-
+                                           {TimeGroupsEnum::DAY,   {0, {}}}}) {
     }
 
     EventLoop::time_type EventLoop::_now() {
@@ -22,11 +20,11 @@ namespace el {
     }
 
     EventLoop::TimeGroupsEnum EventLoop::_time_group_type(time_type delay) {
-        if (delay < 60'000) {
+        if (delay < MIN_TO_MS) {
             return TimeGroupsEnum::SEC;
-        } else if (delay < 3'600'000) {
+        } else if (delay < HOURS_TO_MS) {
             return TimeGroupsEnum::MIN;
-        } else if (delay < 86'400'000) {
+        } else if (delay < DAY_TO_MS) {
             return TimeGroupsEnum::HOURS;
         } else {
             return TimeGroupsEnum::DAY;
@@ -146,9 +144,9 @@ namespace el {
         while (_running) {
             auto now = _now();
 
-//            _update_time_group(TimeGroupsEnum::DAY, now, 86'500'000);
-//            _update_time_group(TimeGroupsEnum::HOURS, now, 3'500'000);
-            _update_time_group(TimeGroupsEnum::MIN, now, 1'000);
+            _update_time_group(TimeGroupsEnum::DAY, now, DAY_TO_MS - 1000);
+            _update_time_group(TimeGroupsEnum::HOURS, now, HOURS_TO_MS - 1000);
+            _update_time_group(TimeGroupsEnum::MIN, now, MIN_TO_MS - 1'000);
 
             auto list = _time_groups[TimeGroupsEnum::SEC].list;
 

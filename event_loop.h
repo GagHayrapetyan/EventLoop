@@ -9,8 +9,12 @@
 #ifndef EVENTLOOP_EVENT_LOOP_H
 #define EVENTLOOP_EVENT_LOOP_H
 
-namespace el {
+#define DAY_TO_MS 86'400'000
+#define HOURS_TO_MS 3'600'000
+#define MIN_TO_MS 60'000
+#define SEC_TO_MS 1'000
 
+namespace el {
 
     class EventLoop {
     public:
@@ -32,17 +36,15 @@ namespace el {
         };
 
         bool _running;
-
         id_type _callback_id_counter;
         std::map<id_type, CallBack> _callback_map;
         std::map<TimeGroupsEnum, TimeGroups> _time_groups;
-        time_type _min_timer;
 
         static time_type _now();
 
         id_type _callback_id();
 
-        static TimeGroupsEnum _time_group_type(time_type delay);
+        TimeGroupsEnum _time_group_type(time_type delay);
 
         void _erase_from_time_group(const TimeGroupsEnum &time_group_type, const id_type &id);
 
