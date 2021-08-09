@@ -10,35 +10,60 @@
 
 namespace el {
 
-    struct CallBack {
-        std::function<void()> func;
-        unsigned int time;
-    };
 
     class EventLoop {
     public:
+        typedef unsigned int id_type;
+        typedef unsigned int time_type;
+
+        enum class TimeGroupsEnum {
+            SEC, MIN, HOURS, DAY
+        };
+
+        struct TimeGroups {
+            std::pair<time_type, std::list<id_type>> sec;
+            std::pair<time_type, std::list<id_type>> min;
+            std::pair<time_type, std::list<id_type>> hours;
+            std::pair<time_type, std::list<id_type>> day;
+        };
+
+        struct CallBack {
+            std::function<void()> func;
+            time_type time;
+        };
+
         bool _running;
-        unsigned int _callback_id_counter;
-        std::map<unsigned int, CallBack> _callback_map;
+        id_type _callback_id_counter;
+        std::map<id_type, CallBack> _callback_map;
+        TimeGroups _time_groups;
+        time_type _min_timer;
 
-        static unsigned int _now();
+        static time_type _now();
 
-        unsigned int _callback_id();
+        id_type _callback_id();
 
-        void _erase(unsigned int &id);
+        static TimeGroupsEnum _time_group_type(time_type &delay);
+
+        void _erase_from_time_group(const TimeGroupsEnum &time_group_type, const id_type &id);
+
+        void _insert_to_time_group(const TimeGroupsEnum &time_group_type, const id_type &id);
+
+        void _erase(id_type &id);
+
+        void _insert(id_type &id, time_type &delay, std::function<void()> cb);
 
         void _loop();
 
     public:
         EventLoop();
 
-        unsigned int setTimeout(unsigned int delay, std::function<void()> cb);
+        id_type setTimeout(time_type delay, std::function<void()> cb);
 
-        unsigned int setInterval(unsigned int delay, std::function<void()> cb);
+        id_type setInterval(time_type delay, std::function<void()> cb);
 
-        void clearTimeout(unsigned int id);
+        void clearTimeout(id_type id);
 
-        void clearInterval(unsigned int id);
+        void clearInterval(id_type id);
 
         void start();
 
