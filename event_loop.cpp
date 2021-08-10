@@ -121,7 +121,7 @@ namespace el {
 
         _insert(id, delay, func);
 
-        return 0;
+        return id;
     }
 
     void EventLoop::clearTimeout(id_type id) {
@@ -156,13 +156,16 @@ namespace el {
             _update_time_group(TimeGroupsEnum::MIN, now, MIN_TO_MS - 1'000);
 
             auto list = _time_groups[TimeGroupsEnum::SEC].list;
-            auto list_front = list.front();
+
             for (auto &i: list) {
-                if (_callback_map[i].time < now) {
-                    _callback_map[i].func();
+                if(_callback_map.find(i)!=_callback_map.end()){
+                    if (_callback_map[i].time < now) {
+                        _callback_map[i].func();
+                    }
                 }
             }
 
+            auto list_front = _time_groups[TimeGroupsEnum::SEC].list.front();
             auto wait = (_time_groups[TimeGroupsEnum::SEC].list.empty()) ?
                         MIN_TO_MS - 1'000 : _callback_map[list_front].time - now;
 
