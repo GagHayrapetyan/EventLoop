@@ -114,8 +114,9 @@ namespace el {
         auto func = [cb, id, delay, this]() {
             cb();
 
-            clearInterval(id);
-            setInterval(delay, cb);
+            _callback_map[id].time = _now() + delay;
+            _erase_from_time_group(TimeGroupsEnum::SEC, id);
+            _insert_to_time_group(_time_group_type(delay), id);
         };
 
         _insert(id, delay, func);
