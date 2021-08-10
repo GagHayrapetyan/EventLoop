@@ -1,50 +1,38 @@
-//
-// Created by gag on 09.08.21.
-//
-
 #include <iostream>
 #include "event_loop.h"
 
 int main() {
     el::EventLoop e;
 
-    e.setTimeout(2,[](){
-        std::cout<<"xxx"<<std::endl;
+    auto now = std::chrono::high_resolution_clock::now();
+
+    auto event_1 = e.setTimeout(20000, [now]() {
+        std::cout << "Timeout 1: " << std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now() - now).count() << std::endl;
     });
 
-    e.setInterval(100,[](){
-        std::cout<<"yyy"<<std::endl;
+    auto event_2 = e.setInterval(6000, [now]() {
+        std::cout << "Interval 1: " << std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now() - now).count() << std::endl;
     });
 
-    for(auto &i: e._callback_map){
-        std::cout<<i.first<<std::endl;
-    }
-
-    e._callback_map[0].func();
-    e._callback_map[1].func();
-
-    std::cout<<"**********************"<<std::endl;
-
-    for(auto &i: e._callback_map){
-        std::cout<<i.first<<std::endl;
-    }
-
-    e._callback_map[1].func();
-    e.setTimeout(2,[](){
-        std::cout<<"xxx"<<std::endl;
+    auto event_3 = e.setInterval(3000, [now]() {
+        std::cout << "Interval 2: " << std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now() - now).count() << std::endl;
     });
 
-    e._callback_map[1].func();
+    e.setTimeout(10000, [&]() {
+        e.clearInterval(event_3);
+    });
 
-    e._callback_map[2].func();
+    e.setTimeout(10, [&]() {
+        e.clearTimeout(event_1);
+    });
 
-    for(auto &i: e._callback_map){
-        std::cout<<i.first<<std::endl;
-    }
 
-    e.clearInterval(1);
+    e.start();
 
-    for(auto &i: e._callback_map){
-        std::cout<<i.first<<std::endl;
-    }
+//    _callback_map[i]
+
+
 }
