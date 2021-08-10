@@ -4,6 +4,7 @@
 #include <list>
 #include <functional>
 #include <chrono>
+#include <condition_variable>
 #include <thread>
 
 #ifndef EVENTLOOP_EVENT_LOOP_H
@@ -35,6 +36,8 @@ namespace el {
             time_type time;
         };
 
+        std::mutex _cv_m;
+        std::condition_variable _cv;
         bool _running;
         id_type _callback_id_counter;
         std::map<id_type, CallBack> _callback_map;
@@ -44,7 +47,7 @@ namespace el {
 
         id_type _callback_id();
 
-        TimeGroupsEnum _time_group_type(time_type delay);
+        static TimeGroupsEnum _time_group_type(time_type delay);
 
         void _erase_from_time_group(const TimeGroupsEnum &time_group_type, const id_type &id);
 

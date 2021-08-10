@@ -87,11 +87,13 @@ namespace el {
         _erase_from_time_group(TimeGroupsEnum::MIN, id);
         _erase_from_time_group(TimeGroupsEnum::HOURS, id);
         _erase_from_time_group(TimeGroupsEnum::DAY, id);
+        _cv.notify_all();
     }
 
     void EventLoop::_insert(id_type &id, time_type &delay, std::function<void()> cb) {
         _callback_map.insert({id, {std::move(cb), _now() + delay}});
         _insert_to_time_group(_time_group_type(delay), id);
+        _cv.notify_all();
     }
 
     EventLoop::id_type EventLoop::setTimeout(time_type delay, std::function<void()> cb) {
@@ -111,7 +113,9 @@ namespace el {
         auto id = _callback_id();
         auto func = [cb, id, delay, this]() {
             cb();
-            _callback_map[id].time = _now() + delay;
+
+            clearInterval(id);
+            setInterval(delay, cb);
         };
 
         _insert(id, delay, func);
@@ -141,6 +145,8 @@ namespace el {
     }
 
     void EventLoop::_loop() {
+        std::unique_lock<std::mutex> lk(_cv_m);
+
         while (_running) {
             auto now = _now();
 
@@ -149,14 +155,20 @@ namespace el {
             _update_time_group(TimeGroupsEnum::MIN, now, MIN_TO_MS - 1'000);
 
             auto list = _time_groups[TimeGroupsEnum::SEC].list;
-
+            auto list_front = list.front();
             for (auto &i: list) {
                 if (_callback_map[i].time < now) {
                     _callback_map[i].func();
                 }
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            auto wait = (_time_groups[TimeGroupsEnum::SEC].list.empty()) ?
+                        MIN_TO_MS - 1'000 : _callback_map[list_front].time - now;
+
+            _cv.wait_for(lk, std::chrono::milliseconds(wait), [this, list_front]() {
+                auto id = _time_groups[TimeGroupsEnum::SEC].list.front();
+                return _callback_map[id].time != _callback_map[list_front].time;
+            });
         }
     }
 
