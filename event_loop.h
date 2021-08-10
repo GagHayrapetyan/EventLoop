@@ -64,16 +64,42 @@ namespace el {
     public:
         EventLoop();
 
+        /**
+         * Raise an event after the delay expires and death.
+         * @param delay Timeout delay in ms
+         * @param cb Callback function
+         * @return event id
+         */
         id_type setTimeout(time_type delay, std::function<void()> cb);
 
+        /**
+         * Raise the event after the delay has elapsed. After the delay expires, the counter is reset to zero.
+         * @param delay Timeout delay in ms
+         * @param cb Callback function
+         * @return event id
+         */
         id_type setInterval(time_type delay, std::function<void()> cb);
 
+        /**
+         * Remove an event from the list.
+         * @param id event id
+         */
         void clearTimeout(id_type id);
 
+        /**
+         * Remove an event from the list.
+         * @param id event id
+         */
         void clearInterval(id_type id);
 
+        /**
+         * Start event loop
+         */
         void start();
 
+        /**
+         * Stop event loop
+         */
         void stop();
     };
 
